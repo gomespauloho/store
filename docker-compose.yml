@@ -1,0 +1,31 @@
+version: "3.7"
+
+services:
+  catalog_api:
+    container_name: catalog_api
+    build:
+      context: .
+      dockerfile: containers/api/Dockerfile
+    env_file:
+      - containers/api/api.env
+    networks:
+      - my_network
+    ports:
+      - 5000:5000
+      - 5001:5001
+    depends_on:
+      - catalog_db
+
+  catalog_db:
+    image: microsoft/mssql-server-linux
+    container_name: catalog_db
+    ports:
+      - 1433:1433
+    env_file:
+      - containers/db/db.env
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge

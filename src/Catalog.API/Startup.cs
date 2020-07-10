@@ -1,12 +1,16 @@
+using System;
 using Catalog.API.Extensions;
-using Catalog.Domain.Repositories;
-using Catalog.Infrastructure.Repositories;
+using Catalog.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using RiskFirst.Hateoas;
+using Polly;
+
+
 
 namespace Catalog.API
 {
@@ -40,6 +44,8 @@ namespace Catalog.API
                 app.UseDeveloperExceptionPage();
             }
 
+            ExecuteMigrations(app, env);
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -49,6 +55,28 @@ namespace Catalog.API
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+        }
+
+        private void ExecuteMigrations(IApplicationBuilder app,
+            IWebHostEnvironment env)
+        {
+            if (env.EnvironmentName == "Testing") return;
+
+            var retry = Policy.Handle<SqlException>()
+                .WaitAndRetry(new TimeSpan[]
+                {
+                    TimeSpan.FromSeconds(2),
+                    TimeSpan.FromSeconds(6),
+                    TimeSpan.FromSeconds(12)
+                });
+
+            retry.Execute(() =>
+            {
+                var scope =
+                app.ApplicationServices.CreateScope();
+
+                scope.ServiceProvider.GetService<CatalogContext>().Database.Migrate();
             });
         }
     }

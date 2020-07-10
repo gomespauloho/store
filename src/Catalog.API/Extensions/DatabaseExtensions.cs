@@ -1,6 +1,7 @@
 ﻿using Catalog.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace Catalog.API.Extensions
 {
@@ -12,8 +13,15 @@ namespace Catalog.API.Extensions
                 .AddEntityFrameworkSqlServer()
                 .AddDbContext<CatalogContext>(opt =>
                 {
-                    opt.UseSqlServer(connectionString,
-                        serverOptions => { serverOptions.MigrationsAssembly(typeof(Startup).Assembly.FullName); });
+                    opt.UseSqlServer(
+                        connectionString,
+                        serverOptions => {
+                            serverOptions.MigrationsAssembly(typeof(Startup)
+                                .GetTypeInfo()
+                                .Assembly
+                                .GetName()
+                                .Name);
+                        });
                 });
         }
     }
